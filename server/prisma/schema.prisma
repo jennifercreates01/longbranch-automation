@@ -36,4 +36,21 @@ model Facility {
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  
+  jobs Job[]
+}
+model Job {
+  id          Int      @id @default(autoincrement())
+  jobNumber   String   @unique
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  startDate   DateTime?
+  endDate     DateTime?
+
+  facilityId  Int
+  facility    Facility @relation(fields: [facilityId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

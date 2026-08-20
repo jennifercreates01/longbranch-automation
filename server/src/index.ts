@@ -20,9 +20,13 @@ app.get("/", (_req, res) => {
 app.get("/api/customers", async (_req, res) => {
   try {
     const customers = await prisma.customer.findMany({
-      include: {
-        facilities: true,
-      },
+    include: {
+  facilities: {
+    include: {
+      jobs: true,
+    },
+  },
+},
       orderBy: {
         name: "asc",
       },
@@ -71,11 +75,14 @@ app.get("/api/customers/:id", async (req, res) => {
 
     const customer = await prisma.customer.findUnique({
       where: { id },
-      include: {
-        facilities: true,
-      },
-    });
-
+    include: {
+  facilities: {
+    include: {
+      jobs: true,
+    },
+  },
+},
+});
     if (!customer) {
       return res.status(404).json({
         message: "Customer not found",
@@ -119,6 +126,51 @@ app.post("/api/customers/:id/facilities", async (req, res) => {
     console.error(error);
     res.status(500).json({
       message: "Unable to create facility",
+    });
+  }
+});
+
+app.post("/api/facilities/:id/jobs", async (req, res) => {
+  try {
+    const facilityId = Number(req.params.id);
+    const {
+      jobNumber,
+      name,
+      description,
+      status,
+      startDate,
+      endDate,
+    } = req.body;
+
+    if (!jobNumber?.trim()) {
+      return res.status(400).json({
+        message: "Job number is required",
+      });
+    }
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        message: "Job name is required",
+      });
+    }
+
+    const job = await prisma.job.create({
+      data: {
+        jobNumber: jobNumber.trim(),
+        name: name.trim(),
+        description: description || null,
+        status: status || "ACTIVE",
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        facilityId,
+      },
+    });
+
+    res.status(201).json(job);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to create job",
     });
   }
 });
