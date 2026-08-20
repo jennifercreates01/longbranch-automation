@@ -6,59 +6,79 @@ A custom full-stack business management and bookkeeping application being develo
 
 Longbranch Automation & Controls provides industrial automation, controls engineering, system integration, installation, maintenance, and technical support services.
 
-This application is being developed to provide Longbranch with a centralized system for managing the financial and operational side of its work. Rather than functioning as a generic retail inventory application, the system is being designed around Longbranch's project- and service-based workflow.
+This application is being developed to provide Longbranch with a centralized system for managing the financial and operational side of the business, replacing disconnected spreadsheets and manual processes with a purpose-built application.
 
-The long-term goal is to connect customers, facilities, jobs, labor, materials, purchasing, invoicing, payments, and job profitability within one application.
+The system is designed around Longbranch's actual workflow, including customers, customer facilities, jobs, billing, expenses, inventory, and reporting.
 
 ## Current Development Status
 
-**In active development**
-
-The initial full-stack architecture and database foundation are currently being built.
+The project is currently in active development.
 
 ### Completed
 
-- React + TypeScript frontend initialized with Vite
-- Node.js + Express + TypeScript backend
-- REST API development environment
-- CORS and environment configuration
-- PostgreSQL development database
-- Prisma ORM integration
-- Initial database migration
+- Full-stack project structure with separate React client and Express server
+- TypeScript configuration for frontend and backend development
+- PostgreSQL database development environment
+- Prisma ORM configuration and database migrations
 - Customer data model
 - Facility data model
-- Customer-to-facility relational structure
-- Git version control and private GitHub repository
+- Job data model
+- Customer → Facility relational database structure
+- Facility → Job relational database structure
+- Customer API endpoints
+- Facility creation API
+- Job creation API
+- Nested relational queries for customers, facilities, and jobs
+- Input validation and API error handling
+- API testing with Postman
 
-### In Progress
+### Current Backend Structure
 
-- Requirements gathering and workflow analysis
-- Database architecture
-- Customer and facility management
-- Job/project data modeling
+The application currently supports the following business hierarchy:
 
-## Planned Core Features
+```text
+Customer
+└── Facility
+    └── Job
+```
 
-- Customer management
-- Multiple facilities/sites per customer
-- Jobs and service calls
-- Estimates and quotes
-- Labor and time tracking
-- Materials and hardware tracking
-- Vendor and purchasing management
-- Job-related expenses
-- Invoicing
-- Payment tracking
-- Job costing and profitability reporting
-- Business dashboard and reporting
+A customer can have multiple facilities, and each facility can have multiple jobs.
 
-## Business Workflow
+This structure reflects Longbranch's real-world workflow, where work is performed for customers at specific plant or facility locations.
 
-The application is being designed around the following core workflow:
+## Current API Endpoints
 
-**Customer → Facility → Job → Estimate → Labor / Materials / Expenses → Invoice → Payment → Profitability**
+### Customers
 
-This structure allows Longbranch to associate work, costs, materials, and revenue with the specific customer facility and job that generated them.
+```http
+GET /api/customers
+GET /api/customers/:id
+POST /api/customers
+```
+
+### Facilities
+
+```http
+POST /api/customers/:id/facilities
+```
+
+### Jobs
+
+```http
+POST /api/facilities/:id/jobs
+```
+
+Customer queries return their related facilities and the jobs associated with those facilities.
+
+## Example Data Relationship
+
+```text
+Test Customer
+└── Main Plant
+    └── LB-2026-001 — PLC Controls Upgrade
+```
+
+This relationship has been successfully created, stored in PostgreSQL, and retrieved through the API.
 
 ## Technology Stack
 
@@ -67,48 +87,50 @@ This structure allows Longbranch to associate work, costs, materials, and revenu
 - React
 - TypeScript
 - Vite
-- ESLint
 
 ### Backend
 
 - Node.js
 - Express
 - TypeScript
-
-### Database
-
-- PostgreSQL
 - Prisma ORM
+- PostgreSQL
 
-### Development & Version Control
+### Development & Testing
 
+- Postman
 - Git
 - GitHub
 - VS Code
 
-## Database Foundation
+## Planned Features
 
-The first database relationship establishes customers and their associated facilities.
+Future development will expand the system to include:
 
-```text
-Customer
-   |
-   +-- Facility
-   +-- Facility
-   +-- Facility
-```
+- Customer and facility management interface
+- Job tracking and job status management
+- Estimates and quotes
+- Invoice creation and tracking
+- Customer payments
+- Expense tracking
+- Vendor management
+- Inventory and parts management
+- Purchase tracking
+- Job-specific labor and material costs
+- Financial reporting
+- Business dashboard
+- Search and filtering
+- Authentication and authorization
+- Printable/exportable business documents
 
-This architecture supports industrial clients that may operate multiple plants or facilities while maintaining a single customer account.
+## Project Goals
 
-Future relationships will extend this structure to jobs, labor, materials, expenses, estimates, invoices, and payments.
+The goal of this project is to build a practical business application around the specific operational needs of Longbranch Automation & Controls rather than relying on a generic bookkeeping platform.
 
-## Development Approach
+The application will combine business management, job tracking, inventory, and financial workflows into a single system while providing a clean and straightforward interface for everyday use.
 
-This project is being developed for a real business based on its operational requirements and existing workflows. Features and database architecture will be refined as requirements are gathered and validated with the client.
+## Development
 
-Development is being completed incrementally with Git commits documenting major milestones throughout the project.
+This project is being designed and developed by **Jennifer** as a custom full-stack software engineering project.
 
----
-
-**Developer:** Jennifer
-**Status:** Active Development
+The repository documents the application's development incrementally as database models, API functionality, business logic, and frontend features are implemented.
