@@ -10,37 +10,88 @@ This application is being developed to provide Longbranch with a centralized sys
 
 The system is designed around Longbranch's actual workflow, including customers, customer facilities, jobs, billing, expenses, inventory, and reporting.
 
-## Current Development Status
+## Current Development Progress
 
-The project is currently in active development.
+### Backend API
 
-### Completed
+The backend API is built with Node.js, Express, TypeScript, Prisma ORM, and PostgreSQL.
 
-- Full-stack project structure with separate React client and Express server
-- TypeScript configuration for frontend and backend development
-- PostgreSQL database development environment
-- Prisma ORM configuration and database migrations
-- Customer data model
-- Facility data model
-- Job data model
-- Customer → Facility relational database structure
-- Facility → Job relational database structure
-- Customer API endpoints
-- Facility creation API
-- Job creation API
-- Nested relational queries for customers, facilities, and jobs
-- Input validation and API error handling
-- API testing with Postman
+The current relational data structure is:
 
-### Current Backend Structure
+Customer → Facility → Job
 
-The application currently supports the following business hierarchy:
+A customer can have multiple facilities, and each facility can have multiple jobs. Prisma relationships allow the API to retrieve nested business data across these records.
 
-```text
+### Customer Management
+
+Implemented functionality includes:
+
+- Create a customer
+- Retrieve all customers
+- Retrieve a customer by ID
+- Return associated facilities
+- Return jobs nested within each facility
+- Customer input validation
+- Appropriate HTTP status and error responses
+
+### Facility Management
+
+Implemented functionality includes:
+
+- Create facilities associated with a customer
+- Store facility address and contact-related information
+- Retrieve facilities through customer records
+- Retrieve jobs associated with each facility
+- Maintain Customer → Facility relationships through PostgreSQL foreign keys
+
+### Job Management
+
+Full CRUD functionality has been implemented for jobs.
+
+Current job endpoints support:
+
+- Create a job for a facility
+- Retrieve all jobs
+- Retrieve an individual job by ID
+- Update an existing job
+- Delete a job
+- Track job status
+- Track start and completion dates
+- Return the associated facility and customer
+
+### API Endpoints
+
+| Method | Endpoint                        | Description                                     |
+| ------ | ------------------------------- | ----------------------------------------------- |
+| GET    | `/`                             | API health check                                |
+| GET    | `/api/customers`                | Retrieve all customers with facilities and jobs |
+| POST   | `/api/customers`                | Create a customer                               |
+| GET    | `/api/customers/:id`            | Retrieve a customer with facilities and jobs    |
+| POST   | `/api/customers/:id/facilities` | Create a facility for a customer                |
+| POST   | `/api/facilities/:id/jobs`      | Create a job for a facility                     |
+| GET    | `/api/jobs`                     | Retrieve all jobs                               |
+| GET    | `/api/jobs/:id`                 | Retrieve a single job                           |
+| PUT    | `/api/jobs/:id`                 | Update a job                                    |
+| DELETE | `/api/jobs/:id`                 | Delete a job                                    |
+
+## Database
+
+PostgreSQL is used as the relational database with Prisma ORM providing schema management, migrations, relationships, and database access.
+
+Current models:
+
+- `Customer`
+- `Facility`
+- `Job`
+
+The current relationship structure is:
+
+````text
 Customer
-└── Facility
-    └── Job
-```
+   │
+   └── Facility
+          │
+          └── Job
 
 A customer can have multiple facilities, and each facility can have multiple jobs.
 
@@ -54,7 +105,7 @@ This structure reflects Longbranch's real-world workflow, where work is performe
 GET /api/customers
 GET /api/customers/:id
 POST /api/customers
-```
+````
 
 ### Facilities
 

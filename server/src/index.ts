@@ -174,6 +174,149 @@ app.post("/api/facilities/:id/jobs", async (req, res) => {
     });
   }
 });
+app.get("/api/jobs", async (_req, res) => {
+  try {
+    const jobs = await prisma.job.findMany({
+      include: {
+        facility: {
+          include: {
+            customer: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(jobs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to retrieve jobs",
+    });
+  }
+});
+app.get("/api/jobs/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const job = await prisma.job.findUnique({
+      where: { id },
+      include: {
+        facility: {
+          include: {
+            customer: true,
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      return res.status(404).json({
+        message: "Job not found",
+      });
+    }
+
+    res.json(job);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to retrieve job",
+    });
+  }
+});
+app.put("/api/jobs/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const {
+      jobNumber,
+      name,
+      description,
+      status,
+      startDate,
+      endDate,
+      facilityId,
+    } = req.body;
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({
+        message: "Job not found",
+      });
+    }
+
+    const updatedJob = await prisma.job.update({
+      where: { id },
+      data: {
+        jobNumber: jobNumber?.trim() || existingJob.jobNumber,
+        name: name?.trim() || existingJob.name,
+        description:
+          description !== undefined ? description || null : existingJob.description,
+        status: status || existingJob.status,
+        startDate:
+          startDate !== undefined
+            ? startDate
+              ? new Date(startDate)
+              : null
+            : existingJob.startDate,
+        endDate:
+          endDate !== undefined
+            ? endDate
+              ? new Date(endDate)
+              : null
+            : existingJob.endDate,
+        facilityId: facilityId || existingJob.facilityId,
+      },
+      include: {
+        facility: {
+          include: {
+            customer: true,
+          },
+        },
+      },
+    });
+
+    res.json(updatedJob);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to update job",
+    });
+  }
+});
+app.delete("/api/jobs/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+    });
+
+    if (!existingJob) {
+      return res.status(404).json({
+        message: "Job not found",
+      });
+    }
+
+    await prisma.job.delete({
+      where: { id },
+    });
+
+    res.json({
+      message: "Job deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to delete job",
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Longbranch server running on port ${PORT}`);
