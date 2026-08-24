@@ -317,6 +317,322 @@ app.delete("/api/jobs/:id", async (req, res) => {
     });
   }
 });
+app.post("/api/invoices", async (req, res) => {
+  try {
+    const {
+      invoiceNumber,
+      customerId,
+      jobId,
+      issueDate,
+      dueDate,
+      discount = 0,
+      notes,
+      lineItems,
+    } = req.body;
+
+    if (!invoiceNumber?.trim()) {
+      return res.status(400).json({
+        message: "Invoice number is required",
+      });
+    }
+
+    if (!customerId) {
+      return res.status(400).json({
+        message: "Customer is required",
+      });
+    }
+
+    if (!Array.isArray(lineItems) || lineItems.length === 0) {
+      return res.status(400).json({
+        message: "At least one line item is required",
+      });
+    }
+
+    const calculatedItems = lineItems.map((item) => {
+      const quantity = Number(item.quantity);
+      const rate = Number(item.rate);
+
+      return {
+        description: item.description,
+        quantity,
+        rate,
+        amount: quantity * rate,
+      };
+    });
+
+    const subtotal = calculatedItems.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const discountAmount = Number(discount) || 0;
+    const total = Math.max(subtotal - discountAmount, 0);
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber: invoiceNumber.trim(),
+        customerId: Number(customerId),
+        jobId: jobId ? Number(jobId) : null,
+        issueDate: issueDate ? new Date(issueDate) : new Date(),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        discount: discountAmount,
+        subtotal,
+        total,
+        notes: notes || null,
+
+        lineItems: {
+          create: calculatedItems,
+        },
+      },
+
+      include: {
+        customer: true,
+        job: true,
+        lineItems: true,
+      },
+    });
+
+    res.status(201).json(invoice);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to create invoice",
+    });
+  }
+});
+app.get("/api/invoices", async (_req, res) => {
+  try {
+    const invoices = await prisma.invoice.findMany({
+      include: {
+        customer: true,
+        job: true,
+        lineItems: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(invoices);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to retrieve invoices",
+    });
+  }
+});
+app.get("/api/invoices/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        job: {
+          include: {
+            facility: true,
+          },
+        },
+        lineItems: true,
+      },
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        message: "Invoice not found",
+      });
+    }
+
+    res.json(invoice);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to retrieve invoice",
+    });
+  }
+});
+app.patch("/api/invoices/:id/status", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status } = req.body;
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        message: "Invalid invoice ID",
+      });
+    }
+
+    const allowedStatuses = ["DRAFT", "SENT", "PAID"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid invoice status",
+      });
+    }
+
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { id },
+    });
+
+    if (!existingInvoice) {
+      return res.status(404).json({
+        message: "Invoice not found",
+      });
+    }
+
+    const invoice = await prisma.invoice.update({
+      where: { id },
+      data: { status },
+      include: {
+        customer: true,
+        job: {
+          include: {
+            facility: true,
+          },
+        },
+        lineItems: true,
+      },
+    });
+
+    res.json(invoice);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to update invoice status",
+    });
+  }
+});
+app.put("/api/invoices/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const {
+      invoiceNumber,
+      customerId,
+      jobId,
+      issueDate,
+      dueDate,
+      discount = 0,
+      notes,
+      lineItems,
+    } = req.body;
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        message: "Invalid invoice ID",
+      });
+    }
+
+    if (!invoiceNumber?.trim()) {
+      return res.status(400).json({
+        message: "Invoice number is required",
+      });
+    }
+
+    if (!customerId) {
+      return res.status(400).json({
+        message: "Customer is required",
+      });
+    }
+
+    if (!Array.isArray(lineItems) || lineItems.length === 0) {
+      return res.status(400).json({
+        message: "At least one line item is required",
+      });
+    }
+
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { id },
+    });
+
+    if (!existingInvoice) {
+      return res.status(404).json({
+        message: "Invoice not found",
+      });
+    }
+
+    const calculatedItems = lineItems.map((item) => {
+      const quantity = Number(item.quantity);
+      const rate = Number(item.rate);
+
+      return {
+        description: item.description.trim(),
+        quantity,
+        rate,
+        amount: quantity * rate,
+      };
+    });
+
+    const subtotal = calculatedItems.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const discountAmount = Number(discount) || 0;
+
+    const total = Math.max(
+      subtotal - discountAmount,
+      0
+    );
+
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id },
+
+      data: {
+        invoiceNumber: invoiceNumber.trim(),
+
+        customerId: Number(customerId),
+
+        jobId: jobId
+          ? Number(jobId)
+          : null,
+
+        issueDate: issueDate
+          ? new Date(issueDate)
+          : existingInvoice.issueDate,
+
+        dueDate: dueDate
+          ? new Date(dueDate)
+          : null,
+
+        subtotal,
+        discount: discountAmount,
+        total,
+
+        notes: notes || null,
+
+        lineItems: {
+          deleteMany: {},
+
+          create: calculatedItems,
+        },
+      },
+
+      include: {
+        customer: true,
+
+        job: {
+          include: {
+            facility: true,
+          },
+        },
+
+        lineItems: true,
+      },
+    });
+
+    res.json(updatedInvoice);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to update invoice",
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Longbranch server running on port ${PORT}`);

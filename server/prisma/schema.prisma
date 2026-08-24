@@ -18,8 +18,10 @@ model Customer {
   phone     String?
   notes     String?
   facilities Facility[]
+  invoices Invoice[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  
 }
 
 model Facility {
@@ -50,6 +52,47 @@ model Job {
 
   facilityId  Int
   facility    Facility @relation(fields: [facilityId], references: [id])
+
+  invoices Invoice[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+model Invoice {
+  id            Int      @id @default(autoincrement())
+  invoiceNumber String   @unique
+
+  issueDate     DateTime @default(now())
+  dueDate       DateTime?
+  status        String   @default("DRAFT")
+
+  subtotal      Decimal  @default(0) @db.Decimal(12, 2)
+  discount      Decimal  @default(0) @db.Decimal(12, 2)
+  total         Decimal  @default(0) @db.Decimal(12, 2)
+
+  notes         String?
+
+  customerId    Int
+  customer      Customer @relation(fields: [customerId], references: [id])
+
+  jobId         Int?
+  job           Job?     @relation(fields: [jobId], references: [id])
+
+  lineItems     InvoiceLineItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model InvoiceLineItem {
+  id          Int      @id @default(autoincrement())
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(10, 2)
+  rate        Decimal  @default(0) @db.Decimal(12, 2)
+  amount      Decimal  @default(0) @db.Decimal(12, 2)
+
+  invoiceId   Int
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
