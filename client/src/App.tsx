@@ -10,6 +10,9 @@ import jsPDF from "jspdf";
 import longbranchLogo from "./assets/longbranch-logo.png";
 import "./App.css";
 
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 type Customer = {
   id: number;
   name: string;
@@ -127,9 +130,9 @@ function App() {
         customerResponse,
         jobResponse,
       ] = await Promise.all([
-        fetch("http://localhost:5000/api/invoices"),
-        fetch("http://localhost:5000/api/customers"),
-        fetch("http://localhost:5000/api/jobs"),
+        fetch(`${API_URL}/api/invoices`),
+        fetch(`${API_URL}/api/customers`),
+        fetch(`${API_URL}/api/jobs`),
       ]);
 
       if (
@@ -304,7 +307,7 @@ function App() {
   ) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/invoices/${invoiceId}`
+        `${API_URL}/api/invoices/${invoiceId}`
       );
 
       if (!response.ok) {
@@ -484,8 +487,8 @@ function App() {
 
       const url =
         editingInvoiceId
-          ? `http://localhost:5000/api/invoices/${editingInvoiceId}`
-          : "http://localhost:5000/api/invoices";
+          ? `${API_URL}/api/invoices/${editingInvoiceId}`
+          : `${API_URL}/api/invoices`;
 
       const response =
         await fetch(url, {
@@ -588,7 +591,7 @@ function App() {
       try {
         const response =
           await fetch(
-            `http://localhost:5000/api/invoices/${selectedInvoice.id}/status`,
+            `${API_URL}/api/invoices/${selectedInvoice.id}/status`,
             {
               method: "PATCH",
 
