@@ -1,22 +1,14 @@
 # Longbranch Automation & Controls — Business Management System
 
-A custom full-stack business management and bookkeeping application being developed for **Longbranch Automation & Controls**, an industrial automation and process control company serving the agriculture, chemical processing, and food processing industries.
+A custom full-stack business management application developed for **Longbranch Automation & Controls**, an industrial automation and process control company serving the agriculture, chemical processing, and food processing industries.
 
 ## Project Overview
 
 Longbranch Automation & Controls provides industrial automation, controls engineering, system integration, installation, maintenance, and technical support services.
 
-This application is being developed to provide Longbranch with a centralized system for managing the financial and operational side of the business, replacing disconnected spreadsheets and manual processes with a purpose-built application.
+This application provides Longbranch with a centralized system for managing the operational and financial side of the business, replacing disconnected spreadsheets and manual processes with a purpose-built application.
 
-The system is designed around Longbranch's actual workflow, including customers, customer facilities, jobs, billing, expenses, inventory, and reporting.
-
-## Current Development Progress
-
-### Backend API
-
-The backend API is built with Node.js, Express, TypeScript, Prisma ORM, and PostgreSQL.
-
-The current relational data structure has expanded to support customers, facilities, jobs, invoices, and invoice line items.
+The system is designed around Longbranch's actual workflow:
 
 ```text
 Customer
@@ -30,54 +22,120 @@ Customer
           └── InvoiceLineItem
 ```
 
-Invoices can also be associated with jobs, allowing billing records to remain connected to the work performed for a customer.
+Invoices can also be associated with jobs, keeping billing records connected to the work performed for a customer.
 
-### Customer Management
+---
 
-Implemented functionality includes:
+## Current Development Status
 
-- Create a customer
-- Retrieve all customers
-- Retrieve a customer by ID
-- Return associated facilities
-- Return jobs nested within each facility
-- Customer input validation
-- Appropriate HTTP status and error responses
+The application has reached a functional full-stack MVP.
 
-### Facility Management
+Core customer, facility, job, and invoice workflows are implemented across the React frontend, Express API, Prisma data layer, and PostgreSQL database.
 
-Implemented functionality includes:
+The current development milestone is focused on:
 
-- Create facilities associated with a customer
-- Store facility address and related information
-- Retrieve facilities through customer records
-- Retrieve jobs associated with each facility
-- Maintain Customer → Facility relationships through PostgreSQL foreign keys
+- Employee authentication
+- Backend route protection
+- Production configuration
+- Production deployment
+- Client testing
 
-### Job Management
+---
+
+## Dashboard
+
+The application opens to a centralized business dashboard providing an overview of Longbranch's current operational and billing data.
+
+The dashboard provides quick access to:
+
+- Customers
+- Jobs
+- Invoices
+- Billing activity
+- Business management navigation
+
+Additional reporting and operational metrics will continue to be added as the application develops.
+
+---
+
+## Customer Management
+
+Customer management is implemented across the frontend and backend.
+
+Current functionality includes:
+
+- Create customers
+- View all customers
+- View individual customer details
+- Edit customer information
+- Delete customers
+- Customer deletion confirmation
+- Dependency protection when related business records exist
+- Store customer contact information
+- Store customer notes
+- View associated facilities
+- View jobs associated with customer facilities
+- View invoices associated with a customer
+- Navigate between related business records
+
+The customer detail interface acts as a central account hub for customer-related activity.
+
+---
+
+## Facility Management
+
+Facilities represent customer plant locations, job sites, or other operational locations.
+
+Current functionality includes:
+
+- Create facilities for customers
+- Store facility address information
+- Associate facilities with customers
+- View facilities from customer records
+- View jobs associated with facilities
+- Delete facilities
+- Facility deletion confirmation
+- Dependency protection for facilities with related jobs
+
+The relational structure maintains:
+
+```text
+Customer → Facility → Job
+```
+
+---
+
+## Job Management
 
 Full CRUD functionality has been implemented for jobs.
 
-Current job functionality includes:
+Current functionality includes:
 
-- Create a job for a facility
+- Create jobs for facilities
 - Retrieve all jobs
-- Retrieve an individual job by ID
-- Update an existing job
-- Delete a job
+- Retrieve individual jobs
+- View detailed job information
+- Edit existing jobs
+- Delete jobs
+- Job deletion confirmation
 - Track job status
-- Track start and completion dates
+- Track start dates
+- Track completion dates
+- Associate jobs with facilities
 - Return the associated facility and customer
+- Navigate directly from customer records to related jobs
 
-### Invoice Management
+---
 
-A full invoice workflow has now been implemented across the backend and frontend.
+## Invoice Management
 
-Current invoice functionality includes:
+A complete invoice workflow has been implemented across the frontend and backend.
 
-- Create customer invoices
+Current functionality includes:
+
+- Create invoices
 - Associate invoices with customers
-- Associate invoices with jobs
+- Optionally associate invoices with jobs
 - Add multiple invoice line items
 - Store quantity and rate for each line item
 - Automatically calculate line-item amounts
@@ -88,21 +146,26 @@ Current invoice functionality includes:
 - Track invoice status
 - Retrieve all invoices
 - Retrieve individual invoice details
-- Edit existing invoices
+- Edit invoices
+- Delete invoices
+- Invoice deletion confirmation
 - Mark invoices as paid
-- Display total invoiced, outstanding, and paid amounts
-- Generate professional branded invoice documents
+- Display total invoiced
+- Display outstanding balances
+- Display paid totals
+- Generate branded invoice documents
 - Download invoices as PDF files
 
-### Invoice Interface
+---
 
-The React frontend now includes an invoice management interface designed around Longbranch's branding.
+## Invoice Interface
 
-Implemented interface features include:
+The React frontend includes a dedicated invoice management interface designed around Longbranch's branding.
 
-- Longbranch Automation & Controls logo and brand colors
+Interface features include:
+
+- Longbranch Automation & Controls logo and branding
 - Business management sidebar navigation
-- Invoice dashboard
 - Invoice summary cards
 - Invoice list
 - New invoice form
@@ -114,9 +177,12 @@ Implemented interface features include:
 - Detailed invoice view
 - Payment status display
 - Mark Paid functionality
+- Delete Invoice functionality
 - PDF invoice export
 
-### PDF Invoice Generation
+---
+
+## PDF Invoice Generation
 
 Invoices can be exported directly from the application as professional PDF documents.
 
@@ -141,30 +207,54 @@ Generated invoices include:
 
 PDF generation is handled client-side using **html2canvas** and **jsPDF**.
 
+---
+
+## Data Safety
+
+Destructive actions include confirmation prompts before records are deleted.
+
+Deletion workflows have been implemented for:
+
+- Customers
+- Facilities
+- Jobs
+- Invoices
+
+Related-record protections are used where appropriate to prevent accidental deletion of business records that still have dependencies.
+
+---
+
 ## API Endpoints
 
-| Method | Endpoint                        | Description                                     |
-| ------ | ------------------------------- | ----------------------------------------------- |
-| GET    | `/`                             | API health check                                |
-| GET    | `/api/customers`                | Retrieve all customers with facilities and jobs |
-| POST   | `/api/customers`                | Create a customer                               |
-| GET    | `/api/customers/:id`            | Retrieve a customer with facilities and jobs    |
-| POST   | `/api/customers/:id/facilities` | Create a facility for a customer                |
-| POST   | `/api/facilities/:id/jobs`      | Create a job for a facility                     |
-| GET    | `/api/jobs`                     | Retrieve all jobs                               |
-| GET    | `/api/jobs/:id`                 | Retrieve a single job                           |
-| PUT    | `/api/jobs/:id`                 | Update a job                                    |
-| DELETE | `/api/jobs/:id`                 | Delete a job                                    |
-| GET    | `/api/invoices`                 | Retrieve all invoices                           |
-| POST   | `/api/invoices`                 | Create an invoice                               |
-| GET    | `/api/invoices/:id`             | Retrieve an invoice with related business data  |
-| PUT    | `/api/invoices/:id`             | Update an existing invoice                      |
+| Method | Endpoint                        | Description                                    |
+| ------ | ------------------------------- | ---------------------------------------------- |
+| GET    | `/`                             | API health check                               |
+| GET    | `/api/customers`                | Retrieve customers with related business data  |
+| POST   | `/api/customers`                | Create a customer                              |
+| GET    | `/api/customers/:id`            | Retrieve an individual customer                |
+| PUT    | `/api/customers/:id`            | Update a customer                              |
+| DELETE | `/api/customers/:id`            | Delete a customer                              |
+| POST   | `/api/customers/:id/facilities` | Create a facility for a customer               |
+| DELETE | `/api/facilities/:id`           | Delete a facility                              |
+| POST   | `/api/facilities/:id/jobs`      | Create a job for a facility                    |
+| GET    | `/api/jobs`                     | Retrieve all jobs                              |
+| GET    | `/api/jobs/:id`                 | Retrieve an individual job                     |
+| PUT    | `/api/jobs/:id`                 | Update a job                                   |
+| DELETE | `/api/jobs/:id`                 | Delete a job                                   |
+| GET    | `/api/invoices`                 | Retrieve all invoices                          |
+| POST   | `/api/invoices`                 | Create an invoice                              |
+| GET    | `/api/invoices/:id`             | Retrieve an invoice with related business data |
+| PUT    | `/api/invoices/:id`             | Update an invoice                              |
+| PATCH  | `/api/invoices/:id/status`      | Update invoice payment status                  |
+| DELETE | `/api/invoices/:id`             | Delete an invoice                              |
+
+---
 
 ## Database
 
-PostgreSQL is used as the relational database with Prisma ORM providing schema management, migrations, relationships, and database access.
+PostgreSQL is used as the relational database, with Prisma ORM providing schema management, migrations, relationships, and database access.
 
-Current models include:
+Current primary models include:
 
 - `Customer`
 - `Facility`
@@ -172,23 +262,31 @@ Current models include:
 - `Invoice`
 - `InvoiceLineItem`
 
-The relational structure reflects Longbranch's real-world workflow, where work is performed for customers at specific plant or facility locations and billing can be associated with that work.
+The relational structure reflects Longbranch's real-world workflow, where work is performed for customers at specific facilities and billing can be associated directly with that work.
 
-## Example Business Relationship
+---
+
+## Application Architecture
+
+The frontend has been refactored into a modular page and component architecture rather than maintaining application functionality inside a single root component.
 
 ```text
-Test Customer
-│
-└── Main Plant
-      │
-      └── LB-2026-001 — PLC Controls Upgrade
-             │
-             └── LBAC-INV-002
-                    │
-                    └── Service Line Item
+client/src/
+├── components/
+├── pages/
+│   ├── Dashboard.tsx
+│   ├── Customers.tsx
+│   ├── Jobs.tsx
+│   └── Invoices.tsx
+├── services/
+├── types/
+├── App.tsx
+└── main.tsx
 ```
 
-This relationship can be created, stored in PostgreSQL, retrieved through the API, displayed through the React frontend, edited, marked as paid, and exported as a branded PDF invoice.
+This structure allows individual business modules to be developed and maintained independently as the system grows.
+
+---
 
 ## Technology Stack
 
@@ -209,6 +307,13 @@ This relationship can be created, stored in PostgreSQL, retrieved through the AP
 - Prisma ORM
 - PostgreSQL
 
+### Infrastructure & Deployment
+
+- Railway
+- Neon PostgreSQL
+- Vercel
+- GitHub
+
 ### Development & Testing
 
 - Postman
@@ -217,12 +322,33 @@ This relationship can be created, stored in PostgreSQL, retrieved through the AP
 - VS Code
 - Browser developer tools
 
+---
+
+## Current Deployment Milestone
+
+The next release milestone is the first authenticated client-accessible deployment.
+
+Before production access is provided, development will add:
+
+- Employee login
+- Secure password storage
+- Authenticated sessions
+- Protected backend API routes
+- Logout functionality
+- Production CORS configuration
+- Production environment configuration
+- End-to-end production testing
+
+Unauthenticated users will not have access to Longbranch business records.
+
+---
+
 ## Planned Features
 
-Future development will expand the system to include:
+Following the initial authenticated production release, development is planned to continue with:
 
-- Customer and facility management interface
-- Expanded job tracking interface
+- Employee account administration
+- Role-based authorization
 - Estimates and quotes
 - Customer payment history
 - Expense tracking
@@ -230,20 +356,24 @@ Future development will expand the system to include:
 - Inventory and parts management
 - Purchase tracking
 - Job-specific labor and material costs
-- Financial reporting
-- Expanded business dashboard
+- Expanded financial reporting
+- Expanded dashboard analytics
 - Search and filtering
-- Authentication and authorization
 - Additional printable/exportable business documents
+- Workflow and navigation improvements
+
+---
 
 ## Project Goals
 
 The goal of this project is to build a practical business application around the specific operational needs of Longbranch Automation & Controls rather than relying on a generic bookkeeping platform.
 
-The application will combine business management, job tracking, inventory, billing, and financial workflows into a single system while providing a clean and straightforward interface for everyday use.
+The application combines customer management, facility management, job tracking, billing, and financial workflows into a centralized system with a straightforward interface designed for everyday business use.
+
+---
 
 ## Development
 
-This project is being designed and developed by **Jennifer** as a custom full-stack software engineering project.
+This project is designed and developed by **Jennifer** as a custom full-stack software engineering project for Longbranch Automation & Controls.
 
-The repository documents the application's development incrementally as database models, API functionality, business logic, and frontend features are implemented.
+The repository documents the application's development incrementally as database models, API functionality, business logic, frontend workflows, authentication, and production infrastructure are implemented.

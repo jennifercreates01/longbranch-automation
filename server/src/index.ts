@@ -130,6 +130,63 @@ app.post("/api/customers/:id/facilities", async (req, res) => {
   }
 });
 
+app.delete("/api/facilities/:id", async (req, res) => {
+  try {
+    const facilityId =
+      Number(req.params.id);
+
+    if (!Number.isInteger(facilityId)) {
+      return res.status(400).json({
+        message: "Invalid facility id",
+      });
+    }
+
+    const facility =
+      await prisma.facility.findUnique({
+        where: {
+          id: facilityId,
+        },
+        include: {
+          jobs: true,
+        },
+      });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    if (facility.jobs.length > 0) {
+      return res.status(409).json({
+        message:
+          "This facility cannot be deleted because jobs are still attached to it. Remove or reassign those jobs first.",
+      });
+    }
+
+    await prisma.facility.delete({
+      where: {
+        id: facilityId,
+      },
+    });
+
+    return res.json({
+      message:
+        "Facility deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Unable to delete facility:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to delete facility",
+    });
+  }
+});
+
 app.post("/api/facilities/:id/jobs", async (req, res) => {
   try {
     const facilityId = Number(req.params.id);
@@ -194,6 +251,103 @@ app.get("/api/jobs", async (_req, res) => {
     console.error(error);
     res.status(500).json({
       message: "Unable to retrieve jobs",
+    });
+  }
+});
+
+app.post("/api/jobs", async (req, res) => {
+  try {
+    const {
+      jobNumber,
+      name,
+      description,
+      status,
+      startDate,
+      endDate,
+      facilityId,
+    } = req.body;
+
+    if (!jobNumber?.trim()) {
+      return res.status(400).json({
+        message: "Job number is required",
+      });
+    }
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        message: "Job name is required",
+      });
+    }
+
+    const parsedFacilityId =
+      Number(facilityId);
+
+    if (
+      !Number.isInteger(
+        parsedFacilityId
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Valid facility ID is required",
+      });
+    }
+
+    const job =
+      await prisma.job.create({
+        data: {
+          jobNumber:
+            jobNumber.trim(),
+
+          name:
+            name.trim(),
+
+          description:
+            description?.trim() ||
+            null,
+
+          status:
+            status || "OPEN",
+
+          startDate:
+            startDate
+              ? new Date(
+                  startDate
+                )
+              : null,
+
+          endDate:
+            endDate
+              ? new Date(
+                  endDate
+                )
+              : null,
+
+          facilityId:
+            parsedFacilityId,
+        },
+
+        include: {
+          facility: {
+            include: {
+              customer: true,
+            },
+          },
+        },
+      });
+
+    return res
+      .status(201)
+      .json(job);
+  } catch (error) {
+    console.error(
+      "Unable to create job:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to create job",
     });
   }
 });
@@ -317,6 +471,85 @@ app.delete("/api/jobs/:id", async (req, res) => {
     });
   }
 });
+
+app.delete("/api/customers/:id", async (req, res) => {
+  try {
+    const customerId =
+      Number(req.params.id);
+
+    if (!Number.isInteger(customerId)) {
+      return res.status(400).json({
+        message: "Invalid customer id",
+      });
+    }
+
+    const customer =
+      await prisma.customer.findUnique({
+        where: {
+          id: customerId,
+        },
+        include: {
+          facilities: {
+            include: {
+              jobs: true,
+            },
+          },
+          invoices: true,
+        },
+      });
+
+    if (!customer) {
+      return res.status(404).json({
+        message: "Customer not found",
+      });
+    }
+
+    const hasFacilities =
+      customer.facilities.length > 0;
+
+    const hasJobs =
+      customer.facilities.some(
+        (facility) =>
+          facility.jobs.length > 0
+      );
+
+    const hasInvoices =
+      customer.invoices.length > 0;
+
+    if (
+      hasFacilities ||
+      hasJobs ||
+      hasInvoices
+    ) {
+      return res.status(409).json({
+        message:
+          "This customer cannot be deleted because related facilities, jobs, or invoices still exist. Remove those records first.",
+      });
+    }
+
+    await prisma.customer.delete({
+      where: {
+        id: customerId,
+      },
+    });
+
+    return res.json({
+      message:
+        "Customer deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Unable to delete customer:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to delete customer",
+    });
+  }
+});
+
 app.post("/api/invoices", async (req, res) => {
   try {
     const {
@@ -505,6 +738,60 @@ app.patch("/api/invoices/:id/status", async (req, res) => {
     });
   }
 });
+
+app.delete("/api/invoices/:id", async (req, res) => {
+  try {
+    const invoiceId =
+      Number(req.params.id);
+
+    if (!Number.isInteger(invoiceId)) {
+      return res.status(400).json({
+        message: "Invalid invoice id",
+      });
+    }
+
+    const invoice =
+      await prisma.invoice.findUnique({
+        where: {
+          id: invoiceId,
+        },
+      });
+
+    if (!invoice) {
+      return res.status(404).json({
+        message: "Invoice not found",
+      });
+    }
+
+    await prisma.invoiceLineItem.deleteMany({
+      where: {
+        invoiceId,
+      },
+    });
+
+    await prisma.invoice.delete({
+      where: {
+        id: invoiceId,
+      },
+    });
+
+    return res.json({
+      message:
+        "Invoice deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Unable to delete invoice:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to delete invoice",
+    });
+  }
+});
+
 app.put("/api/invoices/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -633,7 +920,149 @@ app.put("/api/invoices/:id", async (req, res) => {
     });
   }
 });
+app.post("/api/facilities", async (req, res) => {
+  try {
+    const {
+      name,
+      address,
+      city,
+      state,
+      zipCode,
+      notes,
+      customerId,
+    } = req.body;
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        message: "Facility name is required",
+      });
+    }
+
+    const parsedCustomerId =
+      Number(customerId);
+
+    if (
+      !Number.isInteger(
+        parsedCustomerId
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Valid customer ID is required",
+      });
+    }
+
+    const facility =
+      await prisma.facility.create({
+        data: {
+          name: name.trim(),
+
+          address:
+            address?.trim() ||
+            null,
+
+          city:
+            city?.trim() ||
+            null,
+
+          state:
+            state?.trim() ||
+            null,
+
+          zipCode:
+            zipCode?.trim() ||
+            null,
+
+          notes:
+            notes?.trim() ||
+            null,
+
+          customerId:
+            parsedCustomerId,
+        },
+
+        include: {
+          jobs: true,
+        },
+      });
+
+    return res
+      .status(201)
+      .json(facility);
+  } catch (error) {
+    console.error(
+      "Unable to create facility:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to create facility",
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Longbranch server running on port ${PORT}`);
+});
+app.put("/api/customers/:id", async (req, res) => {
+  try {
+    const customerId = Number(req.params.id);
+
+    if (!Number.isInteger(customerId)) {
+      return res.status(400).json({
+        message: "Invalid customer id",
+      });
+    }
+
+    const {
+      name,
+      email,
+      phone,
+      notes,
+    } = req.body;
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        message: "Customer name is required",
+      });
+    }
+
+    const customer =
+      await prisma.customer.update({
+        where: {
+          id: customerId,
+        },
+
+        data: {
+          name: name.trim(),
+
+          email:
+            email?.trim() || null,
+
+          phone:
+            phone?.trim() || null,
+
+          notes:
+            notes?.trim() || null,
+        },
+
+        include: {
+          facilities: {
+            include: {
+              jobs: true,
+            },
+          },
+        },
+      });
+
+    res.json(customer);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message:
+        "Unable to update customer",
+    });
+  }
 });
