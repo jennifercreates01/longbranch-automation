@@ -10,6 +10,7 @@ import Jobs from "./pages/Jobs";
 import Estimates from "./pages/Estimates";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
+import ChangePassword from "./pages/ChangePassword";
 
 import "./App.css";
 
@@ -18,6 +19,7 @@ type Employee = {
   name: string;
   email: string;
   role: string;
+  mustChangePassword: boolean;
 };
 
 const API_URL =
@@ -167,7 +169,35 @@ function App() {
   if (!employee) {
     return (
       <Login
-        onLogin={setEmployee}
+        onLogin={
+          setEmployee
+        }
+      />
+    );
+  }
+
+  if (
+    employee.mustChangePassword
+  ) {
+    return (
+      <ChangePassword
+        employeeName={
+          employee.name
+        }
+        onPasswordChanged={(
+          updatedEmployee
+        ) => {
+          setEmployee(
+            updatedEmployee
+          );
+
+          setActivePage(
+            "dashboard"
+          );
+        }}
+        onLogout={
+          handleLogout
+        }
       />
     );
   }

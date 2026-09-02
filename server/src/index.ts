@@ -34,6 +34,7 @@ type AuthenticatedRequest = Request & {
     name: string;
     email: string;
     role: string;
+    mustChangePassword: boolean;
   };
 };
 
@@ -65,6 +66,7 @@ const requireAuth = async (
         email: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
       },
     });
 
@@ -79,6 +81,8 @@ const requireAuth = async (
       name: employee.name,
       email: employee.email,
       role: employee.role,
+      mustChangePassword:
+        employee.mustChangePassword,
     };
 
     next();
@@ -154,6 +158,8 @@ app.post("/api/auth/login", async (req, res) => {
         name: employee.name,
         email: employee.email,
         role: employee.role,
+        mustChangePassword:
+          employee.mustChangePassword,
       },
     });
   } catch (error) {
@@ -187,6 +193,120 @@ app.get(
     return res.json({
       employee: req.employee,
     });
+  }
+);
+
+
+app.post(
+  "/api/auth/change-password",
+  requireAuth,
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
+    try {
+      const {
+        currentPassword,
+        newPassword,
+      } = req.body;
+
+      if (
+        !currentPassword ||
+        !newPassword
+      ) {
+        return res.status(400).json({
+          message:
+            "Current password and new password are required",
+        });
+      }
+
+      if (newPassword.length < 12) {
+        return res.status(400).json({
+          message:
+            "New password must be at least 12 characters",
+        });
+      }
+
+      if (
+        currentPassword ===
+        newPassword
+      ) {
+        return res.status(400).json({
+          message:
+            "New password must be different from the temporary password",
+        });
+      }
+
+      const employee =
+        await prisma.employee.findUnique({
+          where: {
+            id: req.employee!.id,
+          },
+        });
+
+      if (!employee) {
+        return res.status(404).json({
+          message:
+            "Employee not found",
+        });
+      }
+
+      const passwordMatches =
+        await bcrypt.compare(
+          currentPassword,
+          employee.passwordHash
+        );
+
+      if (!passwordMatches) {
+        return res.status(401).json({
+          message:
+            "Current password is incorrect",
+        });
+      }
+
+      const passwordHash =
+        await bcrypt.hash(
+          newPassword,
+          12
+        );
+
+      const updatedEmployee =
+        await prisma.employee.update({
+          where: {
+            id: employee.id,
+          },
+
+          data: {
+            passwordHash,
+            mustChangePassword:
+              false,
+          },
+
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            mustChangePassword:
+              true,
+          },
+        });
+
+      return res.json({
+        employee:
+          updatedEmployee,
+      });
+    } catch (error) {
+      console.error(
+        "Unable to change password:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to change password",
+      });
+    }
   }
 );
 
@@ -245,6 +365,29 @@ app.post("/api/auth/setup", async (req, res) => {
 
 // Everything below this line requires an authenticated employee.
 app.use("/api", requireAuth);
+
+app.use(
+  "/api",
+  (
+    req: AuthenticatedRequest,
+    res,
+    next
+  ) => {
+    if (
+      req.employee
+        ?.mustChangePassword
+    ) {
+      return res.status(403).json({
+        message:
+          "Password change required",
+        code:
+          "PASSWORD_CHANGE_REQUIRED",
+      });
+    }
+
+    next();
+  }
+);
 
 app.post(
   "/api/employees",
@@ -321,12 +464,16 @@ app.post(
             passwordHash,
             role: "EMPLOYEE",
             isActive: true,
+            mustChangePassword:
+              true,
           },
           select: {
             id: true,
             name: true,
             email: true,
             role: true,
+            mustChangePassword:
+              true,
           },
         });
 

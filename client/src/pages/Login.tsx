@@ -7,6 +7,7 @@ type LoginProps = {
     name: string;
     email: string;
     role: string;
+    mustChangePassword: boolean;
   }) => void;
 };
 
