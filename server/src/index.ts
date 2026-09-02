@@ -825,6 +825,7 @@ app.delete("/api/customers/:id", async (req, res) => {
             },
           },
           invoices: true,
+          estimates: true,
         },
       });
 
@@ -846,14 +847,18 @@ app.delete("/api/customers/:id", async (req, res) => {
     const hasInvoices =
       customer.invoices.length > 0;
 
+    const hasEstimates =
+      customer.estimates.length > 0;
+
     if (
       hasFacilities ||
       hasJobs ||
-      hasInvoices
+      hasInvoices ||
+      hasEstimates
     ) {
       return res.status(409).json({
         message:
-          "This customer cannot be deleted because related facilities, jobs, or invoices still exist. Remove those records first.",
+          "This customer cannot be deleted because related facilities, jobs, estimates, or invoices still exist. Remove those records first.",
       });
     }
 
@@ -1250,6 +1255,575 @@ app.put("/api/invoices/:id", async (req, res) => {
     });
   }
 });
+
+// ESTIMATES
+
+const getNextEstimateNumber = async () => {
+  const existingEstimates =
+    await prisma.estimate.findMany({
+      select: {
+        estimateNumber: true,
+      },
+    });
+
+  const highestNumber =
+    existingEstimates.reduce(
+      (highest, estimate) => {
+        const match =
+          estimate.estimateNumber.match(
+            /(\d+)$/
+          );
+
+        const number =
+          match
+            ? Number(match[1])
+            : 0;
+
+        return Math.max(
+          highest,
+          number
+        );
+      },
+      0
+    );
+
+  return `LBAC-EST-${String(
+    highestNumber + 1
+  ).padStart(3, "0")}`;
+};
+
+app.post("/api/estimates", async (req, res) => {
+  try {
+    const {
+      customerId,
+      jobId,
+      issueDate,
+      validUntil,
+      discount = 0,
+      notes,
+      lineItems,
+    } = req.body;
+
+    const parsedCustomerId =
+      Number(customerId);
+
+    if (!Number.isInteger(parsedCustomerId)) {
+      return res.status(400).json({
+        message: "Customer is required",
+      });
+    }
+
+    if (
+      !Array.isArray(lineItems) ||
+      lineItems.length === 0
+    ) {
+      return res.status(400).json({
+        message:
+          "At least one line item is required",
+      });
+    }
+
+    const calculatedItems =
+      lineItems.map((item) => {
+        const description =
+          String(
+            item.description ?? ""
+          ).trim();
+
+        const quantity =
+          Number(item.quantity);
+
+        const rate =
+          Number(item.rate);
+
+        if (
+          !description ||
+          !Number.isFinite(quantity) ||
+          quantity <= 0 ||
+          !Number.isFinite(rate) ||
+          rate < 0
+        ) {
+          throw new Error(
+            "INVALID_ESTIMATE_LINE_ITEM"
+          );
+        }
+
+        return {
+          description,
+          quantity,
+          rate,
+          amount:
+            quantity * rate,
+        };
+      });
+
+    const subtotal =
+      calculatedItems.reduce(
+        (sum, item) =>
+          sum + item.amount,
+        0
+      );
+
+    const discountAmount =
+      Number(discount) || 0;
+
+    if (discountAmount < 0) {
+      return res.status(400).json({
+        message:
+          "Discount cannot be negative",
+      });
+    }
+
+    const total =
+      Math.max(
+        subtotal -
+          discountAmount,
+        0
+      );
+
+    const estimateNumber =
+      await getNextEstimateNumber();
+
+    const estimate =
+      await prisma.estimate.create({
+        data: {
+          estimateNumber,
+
+          customerId:
+            parsedCustomerId,
+
+          jobId:
+            jobId
+              ? Number(jobId)
+              : null,
+
+          issueDate:
+            issueDate
+              ? new Date(issueDate)
+              : new Date(),
+
+          validUntil:
+            validUntil
+              ? new Date(validUntil)
+              : null,
+
+          subtotal,
+
+          discount:
+            discountAmount,
+
+          total,
+
+          notes:
+            notes?.trim() ||
+            null,
+
+          lineItems: {
+            create:
+              calculatedItems,
+          },
+        },
+
+        include: {
+          customer: true,
+
+          job: {
+            include: {
+              facility: true,
+            },
+          },
+
+          lineItems: true,
+        },
+      });
+
+    return res
+      .status(201)
+      .json(estimate);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "INVALID_ESTIMATE_LINE_ITEM"
+    ) {
+      return res.status(400).json({
+        message:
+          "Every estimate line item needs a description, a quantity greater than zero, and a non-negative rate",
+      });
+    }
+
+    console.error(
+      "Unable to create estimate:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Unable to create estimate",
+    });
+  }
+});
+
+app.get(
+  "/api/estimates",
+  async (_req, res) => {
+    try {
+      const estimates =
+        await prisma.estimate.findMany({
+          include: {
+            customer: true,
+
+            job: {
+              include: {
+                facility: true,
+              },
+            },
+
+            lineItems: true,
+          },
+
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+
+      return res.json(estimates);
+    } catch (error) {
+      console.error(
+        "Unable to retrieve estimates:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to retrieve estimates",
+      });
+    }
+  }
+);
+
+app.get(
+  "/api/estimates/:id",
+  async (req, res) => {
+    try {
+      const id =
+        Number(req.params.id);
+
+      if (!Number.isInteger(id)) {
+        return res.status(400).json({
+          message:
+            "Invalid estimate ID",
+        });
+      }
+
+      const estimate =
+        await prisma.estimate.findUnique({
+          where: {
+            id,
+          },
+
+          include: {
+            customer: true,
+
+            job: {
+              include: {
+                facility: true,
+              },
+            },
+
+            lineItems: true,
+          },
+        });
+
+      if (!estimate) {
+        return res.status(404).json({
+          message:
+            "Estimate not found",
+        });
+      }
+
+      return res.json(estimate);
+    } catch (error) {
+      console.error(
+        "Unable to retrieve estimate:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to retrieve estimate",
+      });
+    }
+  }
+);
+
+app.put(
+  "/api/estimates/:id",
+  async (req, res) => {
+    try {
+      const id =
+        Number(req.params.id);
+
+      const {
+        customerId,
+        jobId,
+        issueDate,
+        validUntil,
+        discount = 0,
+        notes,
+        lineItems,
+      } = req.body;
+
+      if (!Number.isInteger(id)) {
+        return res.status(400).json({
+          message:
+            "Invalid estimate ID",
+        });
+      }
+
+      const parsedCustomerId =
+        Number(customerId);
+
+      if (
+        !Number.isInteger(
+          parsedCustomerId
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Customer is required",
+        });
+      }
+
+      if (
+        !Array.isArray(lineItems) ||
+        lineItems.length === 0
+      ) {
+        return res.status(400).json({
+          message:
+            "At least one line item is required",
+        });
+      }
+
+      const existingEstimate =
+        await prisma.estimate.findUnique({
+          where: {
+            id,
+          },
+        });
+
+      if (!existingEstimate) {
+        return res.status(404).json({
+          message:
+            "Estimate not found",
+        });
+      }
+
+      const calculatedItems =
+        lineItems.map((item) => {
+          const description =
+            String(
+              item.description ?? ""
+            ).trim();
+
+          const quantity =
+            Number(item.quantity);
+
+          const rate =
+            Number(item.rate);
+
+          if (
+            !description ||
+            !Number.isFinite(
+              quantity
+            ) ||
+            quantity <= 0 ||
+            !Number.isFinite(rate) ||
+            rate < 0
+          ) {
+            throw new Error(
+              "INVALID_ESTIMATE_LINE_ITEM"
+            );
+          }
+
+          return {
+            description,
+            quantity,
+            rate,
+            amount:
+              quantity * rate,
+          };
+        });
+
+      const subtotal =
+        calculatedItems.reduce(
+          (sum, item) =>
+            sum + item.amount,
+          0
+        );
+
+      const discountAmount =
+        Number(discount) || 0;
+
+      if (discountAmount < 0) {
+        return res.status(400).json({
+          message:
+            "Discount cannot be negative",
+        });
+      }
+
+      const total =
+        Math.max(
+          subtotal -
+            discountAmount,
+          0
+        );
+
+      const updatedEstimate =
+        await prisma.estimate.update({
+          where: {
+            id,
+          },
+
+          data: {
+            customerId:
+              parsedCustomerId,
+
+            jobId:
+              jobId
+                ? Number(jobId)
+                : null,
+
+            issueDate:
+              issueDate
+                ? new Date(
+                    issueDate
+                  )
+                : existingEstimate.issueDate,
+
+            validUntil:
+              validUntil
+                ? new Date(
+                    validUntil
+                  )
+                : null,
+
+            subtotal,
+
+            discount:
+              discountAmount,
+
+            total,
+
+            notes:
+              notes?.trim() ||
+              null,
+
+            lineItems: {
+              deleteMany: {},
+
+              create:
+                calculatedItems,
+            },
+          },
+
+          include: {
+            customer: true,
+
+            job: {
+              include: {
+                facility: true,
+              },
+            },
+
+            lineItems: true,
+          },
+        });
+
+      return res.json(
+        updatedEstimate
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message ===
+          "INVALID_ESTIMATE_LINE_ITEM"
+      ) {
+        return res.status(400).json({
+          message:
+            "Every estimate line item needs a description, a quantity greater than zero, and a non-negative rate",
+        });
+      }
+
+      console.error(
+        "Unable to update estimate:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to update estimate",
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/estimates/:id",
+  async (req, res) => {
+    try {
+      const estimateId =
+        Number(req.params.id);
+
+      if (
+        !Number.isInteger(
+          estimateId
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid estimate ID",
+        });
+      }
+
+      const estimate =
+        await prisma.estimate.findUnique({
+          where: {
+            id: estimateId,
+          },
+        });
+
+      if (!estimate) {
+        return res.status(404).json({
+          message:
+            "Estimate not found",
+        });
+      }
+
+      await prisma.estimate.delete({
+        where: {
+          id: estimateId,
+        },
+      });
+
+      return res.json({
+        message:
+          "Estimate deleted successfully",
+      });
+    } catch (error) {
+      console.error(
+        "Unable to delete estimate:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to delete estimate",
+      });
+    }
+  }
+);
+
 app.post("/api/facilities", async (req, res) => {
   try {
     const {
@@ -1332,9 +1906,6 @@ app.post("/api/facilities", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Longbranch server running on port ${PORT}`);
-});
 app.put("/api/customers/:id", async (req, res) => {
   try {
     const customerId = Number(req.params.id);
@@ -1395,4 +1966,8 @@ app.put("/api/customers/:id", async (req, res) => {
         "Unable to update customer",
     });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Longbranch server running on port ${PORT}`);
 });

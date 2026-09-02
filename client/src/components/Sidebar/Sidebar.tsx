@@ -112,15 +112,15 @@ function Sidebar({
 
           <button
             className={
-              activePage === "invoices"
+              activePage === "estimates"
                 ? "active"
                 : ""
             }
             onClick={() =>
-              navigate("invoices")
+              navigate("estimates")
             }
           >
-            Invoices
+            Estimates
           </button>
         </nav>
 

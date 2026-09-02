@@ -17,6 +17,7 @@ model Customer {
   updatedAt  DateTime   @updatedAt
   facilities Facility[]
   invoices   Invoice[]
+  estimates  Estimate[]
 }
 
 model Facility {
@@ -30,8 +31,9 @@ model Facility {
   customerId Int
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  customer   Customer @relation(fields: [customerId], references: [id])
-  jobs       Job[]
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  jobs     Job[]
 }
 
 model Job {
@@ -45,39 +47,91 @@ model Job {
   facilityId  Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  invoices    Invoice[]
-  facility    Facility  @relation(fields: [facilityId], references: [id])
+
+  facility  Facility   @relation(fields: [facilityId], references: [id])
+  invoices  Invoice[]
+  estimates Estimate[]
 }
 
 model Invoice {
-  id            Int               @id @default(autoincrement())
-  invoiceNumber String            @unique
-  issueDate     DateTime          @default(now())
+  id            Int       @id @default(autoincrement())
+  invoiceNumber String    @unique
+  issueDate     DateTime  @default(now())
   dueDate       DateTime?
-  status        String            @default("DRAFT")
-  subtotal      Decimal           @default(0) @db.Decimal(12, 2)
-  discount      Decimal           @default(0) @db.Decimal(12, 2)
-  total         Decimal           @default(0) @db.Decimal(12, 2)
-  notes         String?
-  customerId    Int
-  jobId         Int?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  customer      Customer          @relation(fields: [customerId], references: [id])
-  job           Job?              @relation(fields: [jobId], references: [id])
-  lineItems     InvoiceLineItem[]
+  status        String    @default("DRAFT")
+
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  discount Decimal @default(0) @db.Decimal(12, 2)
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes String?
+
+  customerId Int
+  jobId      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  job      Job?     @relation(fields: [jobId], references: [id])
+
+  lineItems InvoiceLineItem[]
 }
 
 model InvoiceLineItem {
-  id          Int      @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   description String
-  quantity    Decimal  @default(1) @db.Decimal(10, 2)
-  rate        Decimal  @default(0) @db.Decimal(12, 2)
-  amount      Decimal  @default(0) @db.Decimal(12, 2)
-  invoiceId   Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  quantity Decimal @default(1) @db.Decimal(10, 2)
+  rate     Decimal @default(0) @db.Decimal(12, 2)
+  amount   Decimal @default(0) @db.Decimal(12, 2)
+
+  invoiceId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Estimate {
+  id             Int       @id @default(autoincrement())
+  estimateNumber String    @unique
+  issueDate      DateTime  @default(now())
+  validUntil     DateTime?
+
+  subtotal Decimal @default(0) @db.Decimal(12, 2)
+  discount Decimal @default(0) @db.Decimal(12, 2)
+  total    Decimal @default(0) @db.Decimal(12, 2)
+
+  notes String?
+
+  customerId Int
+  jobId      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  job      Job?     @relation(fields: [jobId], references: [id])
+
+  lineItems EstimateLineItem[]
+}
+
+model EstimateLineItem {
+  id          Int    @id @default(autoincrement())
+  description String
+
+  quantity Decimal @default(1) @db.Decimal(10, 2)
+  rate     Decimal @default(0) @db.Decimal(12, 2)
+  amount   Decimal @default(0) @db.Decimal(12, 2)
+
+  estimateId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
 }
 
 model Employee {

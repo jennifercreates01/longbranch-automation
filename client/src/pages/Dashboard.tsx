@@ -8,9 +8,19 @@ import { API_URL } from "../services/api";
 
 import type {
   Customer,
-  Invoice,
   Job,
 } from "../types";
+
+type Estimate = {
+  id: number;
+  estimateNumber: string;
+  issueDate: string;
+  validUntil?: string | null;
+  subtotal: number;
+  discount: number;
+  total: number;
+  customer: Customer;
+};
 
 function Dashboard() {
   const [customers, setCustomers] =
@@ -19,8 +29,8 @@ function Dashboard() {
   const [jobs, setJobs] =
     useState<Job[]>([]);
 
-  const [invoices, setInvoices] =
-    useState<Invoice[]>([]);
+  const [estimates, setEstimates] =
+    useState<Estimate[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -35,26 +45,38 @@ function Dashboard() {
           setLoading(true);
           setError("");
 
-      const [
-  customerResponse,
-  jobResponse,
-  invoiceResponse,
-] = await Promise.all([
-  fetch(`${API_URL}/api/customers`, {
-    credentials: "include",
-  }),
-  fetch(`${API_URL}/api/jobs`, {
-    credentials: "include",
-  }),
-  fetch(`${API_URL}/api/invoices`, {
-    credentials: "include",
-  }),
-]);
+          const [
+            customerResponse,
+            jobResponse,
+            estimateResponse,
+          ] = await Promise.all([
+            fetch(
+              `${API_URL}/api/customers`,
+              {
+                credentials:
+                  "include",
+              }
+            ),
+            fetch(
+              `${API_URL}/api/jobs`,
+              {
+                credentials:
+                  "include",
+              }
+            ),
+            fetch(
+              `${API_URL}/api/estimates`,
+              {
+                credentials:
+                  "include",
+              }
+            ),
+          ]);
 
           if (
             !customerResponse.ok ||
             !jobResponse.ok ||
-            !invoiceResponse.ok
+            !estimateResponse.ok
           ) {
             throw new Error(
               "Unable to load dashboard data"
@@ -69,9 +91,9 @@ function Dashboard() {
             Job[] =
               await jobResponse.json();
 
-          const invoiceData:
-            Invoice[] =
-              await invoiceResponse.json();
+          const estimateData:
+            Estimate[] =
+              await estimateResponse.json();
 
           setCustomers(
             customerData
@@ -81,8 +103,8 @@ function Dashboard() {
             jobData
           );
 
-          setInvoices(
-            invoiceData
+          setEstimates(
+            estimateData
           );
         } catch (error) {
           console.error(error);
@@ -95,7 +117,7 @@ function Dashboard() {
         }
       };
 
-    loadDashboard();
+    void loadDashboard();
   }, []);
 
   const formatCurrency = (
@@ -129,33 +151,19 @@ function Dashboard() {
     );
   };
 
-  const totalInvoiced =
-    invoices.reduce(
-      (sum, invoice) =>
+  const totalEstimated =
+    estimates.reduce(
+      (sum, estimate) =>
         sum +
-        Number(invoice.total),
+        Number(estimate.total),
       0
     );
 
-  const totalPaid =
-    invoices
-      .filter(
-        (invoice) =>
-          invoice.status ===
-          "PAID"
-      )
-      .reduce(
-        (sum, invoice) =>
-          sum +
-          Number(
-            invoice.total
-          ),
-        0
-      );
-
-  const outstanding =
-    totalInvoiced -
-    totalPaid;
+  const averageEstimate =
+    estimates.length > 0
+      ? totalEstimated /
+        estimates.length
+      : 0;
 
   const activeJobs =
     jobs.filter(
@@ -199,9 +207,9 @@ function Dashboard() {
         .slice(0, 5);
     }, [jobs]);
 
-  const recentInvoices =
+  const recentEstimates =
     useMemo(() => {
-      return [...invoices]
+      return [...estimates]
         .sort((a, b) => {
           return (
             new Date(
@@ -213,7 +221,7 @@ function Dashboard() {
           );
         })
         .slice(0, 5);
-    }, [invoices]);
+    }, [estimates]);
 
   if (loading) {
     return (
@@ -256,9 +264,7 @@ function Dashboard() {
           </span>
 
           <strong>
-            {
-              customers.length
-            }
+            {customers.length}
           </strong>
         </div>
 
@@ -294,42 +300,40 @@ function Dashboard() {
 
         <div className="summary-card">
           <span>
-            Total Invoiced
+            Total Estimated
           </span>
 
           <strong>
             {formatCurrency(
-              totalInvoiced
+              totalEstimated
             )}
           </strong>
         </div>
 
         <div className="summary-card">
           <span>
-            Outstanding
+            Estimate Count
           </span>
 
           <strong>
-            {formatCurrency(
-              outstanding
-            )}
+            {estimates.length}
           </strong>
         </div>
 
         <div className="summary-card">
           <span>
-            Paid
+            Average Estimate
           </span>
 
           <strong>
             {formatCurrency(
-              totalPaid
+              averageEstimate
             )}
           </strong>
         </div>
       </section>
 
-      <section className="invoice-section">
+      <section className="estimate-section">
         <div className="section-heading">
           <div>
             <h3>
@@ -342,7 +346,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="invoice-table">
+        <div className="estimate-table">
           <div className="table-row table-header">
             <span>
               Job Number
@@ -380,9 +384,7 @@ function Dashboard() {
                   key={job.id}
                 >
                   <strong>
-                    {
-                      job.jobNumber
-                    }
+                    {job.jobNumber}
                   </strong>
 
                   <span>
@@ -422,23 +424,23 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="invoice-section">
+      <section className="estimate-section">
         <div className="section-heading">
           <div>
             <h3>
-              Recent Invoices
+              Recent Estimates
             </h3>
 
             <p>
-              Latest billing activity
+              Latest estimate activity
             </p>
           </div>
         </div>
 
-        <div className="invoice-table">
+        <div className="estimate-table">
           <div className="table-row table-header">
             <span>
-              Invoice
+              Estimate
             </span>
 
             <span>
@@ -450,7 +452,7 @@ function Dashboard() {
             </span>
 
             <span>
-              Status
+              Valid Until
             </span>
 
             <span className="amount">
@@ -458,31 +460,29 @@ function Dashboard() {
             </span>
           </div>
 
-          {recentInvoices.length ===
+          {recentEstimates.length ===
           0 ? (
             <div className="table-row">
               <span>
-                No invoices yet.
+                No estimates yet.
               </span>
             </div>
           ) : (
-            recentInvoices.map(
-              (invoice) => (
+            recentEstimates.map(
+              (estimate) => (
                 <div
                   className="table-row"
-                  key={
-                    invoice.id
-                  }
+                  key={estimate.id}
                 >
                   <strong>
                     {
-                      invoice.invoiceNumber
+                      estimate.estimateNumber
                     }
                   </strong>
 
                   <span>
                     {
-                      invoice
+                      estimate
                         .customer
                         .name
                     }
@@ -490,24 +490,20 @@ function Dashboard() {
 
                   <span>
                     {formatDate(
-                      invoice.issueDate
+                      estimate.issueDate
                     )}
                   </span>
 
                   <span>
-                    <span
-                      className={`status ${invoice.status.toLowerCase()}`}
-                    >
-                      {
-                        invoice.status
-                      }
-                    </span>
+                    {formatDate(
+                      estimate.validUntil
+                    )}
                   </span>
 
                   <strong className="amount">
                     {formatCurrency(
                       Number(
-                        invoice.total
+                        estimate.total
                       )
                     )}
                   </strong>

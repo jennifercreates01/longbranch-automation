@@ -10,8 +10,16 @@ import { API_URL } from "../services/api";
 
 import type {
   Customer,
-  Invoice,
 } from "../types";
+
+type Estimate = {
+  id: number;
+  estimateNumber: string;
+  issueDate: string;
+  validUntil?: string | null;
+  total: number;
+  customer: Customer;
+};
 
 type CustomersProps = {
   onNavigate: (
@@ -32,9 +40,9 @@ function Customers({
     useState<Customer[]>([]);
 
   const [
-    invoices,
-    setInvoices,
-  ] = useState<Invoice[]>([]);
+    estimates,
+    setEstimates,
+  ] = useState<Estimate[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -74,7 +82,7 @@ function Customers({
 
         const [
           customerResponse,
-          invoiceResponse,
+          estimateResponse,
         ] = await Promise.all([
           fetch(
             `${API_URL}/api/customers`, {
@@ -82,7 +90,7 @@ function Customers({
 }
           ),
           fetch(
-            `${API_URL}/api/invoices`, {
+            `${API_URL}/api/estimates`, {
   credentials: "include",
 }
           ),
@@ -90,7 +98,7 @@ function Customers({
 
         if (
           !customerResponse.ok ||
-          !invoiceResponse.ok
+          !estimateResponse.ok
         ) {
           throw new Error(
             "Unable to load customer data"
@@ -101,16 +109,16 @@ function Customers({
           Customer[] =
             await customerResponse.json();
 
-        const invoiceData:
-          Invoice[] =
-            await invoiceResponse.json();
+        const estimateData:
+          Estimate[] =
+            await estimateResponse.json();
 
         setCustomers(
           customerData
         );
 
-        setInvoices(
-          invoiceData
+        setEstimates(
+          estimateData
         );
       } catch (error) {
         console.error(error);
@@ -374,10 +382,10 @@ function Customers({
           facility.jobs || []
       );
 
-    const customerInvoices =
-      invoices.filter(
-        (invoice) =>
-          invoice.customer.id ===
+    const customerEstimates =
+      estimates.filter(
+        (estimate) =>
+          estimate.customer.id ===
           selectedCustomer.id
       );
 
@@ -701,11 +709,11 @@ function Customers({
           <div className="section-heading">
             <div>
               <h3>
-                Invoices
+                Estimates
               </h3>
 
               <p>
-                Billing activity for
+                Estimate activity for
                 this customer
               </p>
             </div>
@@ -715,24 +723,24 @@ function Customers({
               className="secondary-button"
               onClick={() =>
                 onNavigate(
-                  "invoices"
+                  "estimates"
                 )
               }
             >
-              View All Invoices
+              View All Estimates
             </button>
           </div>
 
-          {customerInvoices.length ===
+          {customerEstimates.length ===
           0 ? (
             <p>
-              No invoices yet.
+              No estimates yet.
             </p>
           ) : (
             <div className="invoice-table">
               <div className="table-row table-header">
                 <span>
-                  Invoice
+                  Estimate
                 </span>
 
                 <span>
@@ -740,7 +748,7 @@ function Customers({
                 </span>
 
                 <span>
-                  Status
+                  Valid Until
                 </span>
 
                 <span className="amount">
@@ -748,23 +756,23 @@ function Customers({
                 </span>
               </div>
 
-              {customerInvoices.map(
-                (invoice) => (
+              {customerEstimates.map(
+                (estimate) => (
                   <div
                     className="table-row"
                     key={
-                      invoice.id
+                      estimate.id
                     }
                   >
                     <strong>
                       {
-                        invoice.invoiceNumber
+                        estimate.estimateNumber
                       }
                     </strong>
 
                     <span>
                       {new Date(
-                        invoice.issueDate
+                        estimate.issueDate
                       ).toLocaleDateString(
                         "en-US",
                         {
@@ -781,13 +789,23 @@ function Customers({
                     </span>
 
                     <span>
-                      <span
-                        className={`status ${invoice.status.toLowerCase()}`}
-                      >
-                        {
-                          invoice.status
-                        }
-                      </span>
+                      {estimate.validUntil
+                        ? new Date(
+                            estimate.validUntil
+                          ).toLocaleDateString(
+                            "en-US",
+                            {
+                              month:
+                                "short",
+                              day:
+                                "numeric",
+                              year:
+                                "numeric",
+                              timeZone:
+                                "UTC",
+                            }
+                          )
+                        : "—"}
                     </span>
 
                     <strong className="amount">
@@ -801,7 +819,7 @@ function Customers({
                         }
                       ).format(
                         Number(
-                          invoice.total
+                          estimate.total
                         )
                       )}
                     </strong>

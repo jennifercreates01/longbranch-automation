@@ -7,7 +7,7 @@ import Sidebar from "./components/Sidebar/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Jobs from "./pages/Jobs";
-import Invoices from "./pages/Invoices";
+import Estimates from "./pages/Estimates";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
 
@@ -131,6 +131,9 @@ function App() {
           />
         );
 
+      case "estimates":
+        return <Estimates />;
+
       case "create-user":
         if (
           employee?.role !== "ADMIN"
@@ -148,9 +151,8 @@ function App() {
           />
         );
 
-      case "invoices":
       default:
-        return <Invoices />;
+        return <Dashboard />;
     }
   };
 
