@@ -88,16 +88,21 @@ function Invoices() {
     try {
       setLoading(true);
 
-      const [
-        invoiceResponse,
-        customerResponse,
-        jobResponse,
-      ] = await Promise.all([
-        fetch(`${API_URL}/api/invoices`),
-        fetch(`${API_URL}/api/customers`),
-        fetch(`${API_URL}/api/jobs`),
-      ]);
-
+    const [
+  invoiceResponse,
+  customerResponse,
+  jobResponse,
+] = await Promise.all([
+  fetch(`${API_URL}/api/invoices`, {
+    credentials: "include",
+  }),
+  fetch(`${API_URL}/api/customers`, {
+    credentials: "include",
+  }),
+  fetch(`${API_URL}/api/jobs`, {
+    credentials: "include",
+  }),
+]);
       if (
         !invoiceResponse.ok ||
         !customerResponse.ok ||
@@ -291,7 +296,10 @@ function Invoices() {
     try {
       const response =
         await fetch(
-          `${API_URL}/api/invoices/${invoiceId}`
+          `${API_URL}/api/invoices/${invoiceId}`,
+          {
+            credentials: "include",
+          }
         );
 
       if (!response.ok) {
@@ -500,6 +508,7 @@ function Invoices() {
           await fetch(
             url,
             {
+               credentials: "include",
               method:
                 editingInvoiceId
                   ? "PUT"
@@ -616,21 +625,17 @@ function Invoices() {
       }
 
       try {
-        const response =
-          await fetch(
-            `${API_URL}/api/invoices/${selectedInvoice.id}/status`,
-            {
-              method:
-                "PATCH",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify(
-                  {
+       const response =
+  await fetch(
+    `${API_URL}/api/invoices/${selectedInvoice.id}/status`,
+    {
+      credentials: "include",
+      method: "PATCH",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
                     status:
                       "PAID",
                   }
@@ -689,12 +694,14 @@ function Invoices() {
   try {
     setFormError("");
 
-    const response = await fetch(
-      `${API_URL}/api/invoices/${selectedInvoice.id}`,
-      {
-        method: "DELETE",
-      }
-    );
+   const response =
+  await fetch(
+    `${API_URL}/api/invoices/${selectedInvoice.id}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
 
     if (!response.ok) {
       let message =

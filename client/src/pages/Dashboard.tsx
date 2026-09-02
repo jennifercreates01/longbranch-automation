@@ -35,21 +35,21 @@ function Dashboard() {
           setLoading(true);
           setError("");
 
-          const [
-            customerResponse,
-            jobResponse,
-            invoiceResponse,
-          ] = await Promise.all([
-            fetch(
-              `${API_URL}/api/customers`
-            ),
-            fetch(
-              `${API_URL}/api/jobs`
-            ),
-            fetch(
-              `${API_URL}/api/invoices`
-            ),
-          ]);
+      const [
+  customerResponse,
+  jobResponse,
+  invoiceResponse,
+] = await Promise.all([
+  fetch(`${API_URL}/api/customers`, {
+    credentials: "include",
+  }),
+  fetch(`${API_URL}/api/jobs`, {
+    credentials: "include",
+  }),
+  fetch(`${API_URL}/api/invoices`, {
+    credentials: "include",
+  }),
+]);
 
           if (
             !customerResponse.ok ||

@@ -1,0 +1,108 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-top {
+  width: 100%;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.sidebar-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.create-user-button,
+.logout-button {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.create-user-button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.create-user-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.logout-button {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #d7e0e9;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.mobile-menu-button {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .sidebar {
+    min-height: auto;
+  }
+
+  .sidebar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .sidebar-top .brand {
+    flex: 1;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .sidebar-top .brand p {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .sidebar-menu {
+    display: none;
+    padding-top: 20px;
+  }
+
+  .sidebar-menu-open {
+    display: flex;
+  }
+
+  .sidebar-actions {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}

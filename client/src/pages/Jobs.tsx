@@ -82,10 +82,16 @@ function Jobs({
         customerResponse,
       ] = await Promise.all([
         fetch(
-          `${API_URL}/api/jobs`
+          `${API_URL}/api/jobs`,
+          {
+            credentials: "include",
+          }
         ),
         fetch(
-          `${API_URL}/api/customers`
+          `${API_URL}/api/customers`,
+          {
+            credentials: "include",
+          }
         ),
       ]);
 
@@ -131,7 +137,10 @@ function Jobs({
     try {
       const response =
         await fetch(
-          `${API_URL}/api/jobs/${jobId}`
+          `${API_URL}/api/jobs/${jobId}`,
+          {
+            credentials: "include",
+          }
         );
 
       if (!response.ok) {
@@ -166,8 +175,10 @@ function Jobs({
   try {
     const response = await fetch(
       `${API_URL}/api/jobs/${selectedJob.id}`,
+      
       {
         method: "DELETE",
+        credentials: "include",
       }
     );
 

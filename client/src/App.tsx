@@ -1,12 +1,28 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import Sidebar from "./components/Sidebar/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Jobs from "./pages/Jobs";
 import Invoices from "./pages/Invoices";
+import Login from "./pages/Login";
+import CreateUser from "./pages/CreateUser";
 
 import "./App.css";
+
+type Employee = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000";
 
 function App() {
   const [activePage, setActivePage] =
@@ -15,9 +31,44 @@ function App() {
   const [
     selectedJobId,
     setSelectedJobId,
-  ] = useState<number | null>(
-    null
-  );
+  ] = useState<number | null>(null);
+
+  const [employee, setEmployee] =
+    useState<Employee | null>(null);
+
+  const [
+    checkingAuth,
+    setCheckingAuth,
+  ] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/auth/me`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          setEmployee(null);
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        setEmployee(data.employee);
+      } catch {
+        setEmployee(null);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    void checkAuth();
+  }, []);
 
   const handleNavigate = (
     page: string
@@ -31,6 +82,27 @@ function App() {
   ) => {
     setSelectedJobId(jobId);
     setActivePage("jobs");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(
+        `${API_URL}/api/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Unable to log out:",
+        error
+      );
+    } finally {
+      setEmployee(null);
+      setActivePage("dashboard");
+      setSelectedJobId(null);
+    }
   };
 
   const renderPage = () => {
@@ -59,11 +131,44 @@ function App() {
           />
         );
 
+      case "create-user":
+        if (
+          employee?.role !== "ADMIN"
+        ) {
+          return <Dashboard />;
+        }
+
+        return (
+          <CreateUser
+            onDone={() =>
+              handleNavigate(
+                "dashboard"
+              )
+            }
+          />
+        );
+
       case "invoices":
       default:
         return <Invoices />;
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="auth-loading">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <Login
+        onLogin={setEmployee}
+      />
+    );
+  }
 
   return (
     <div className="app">
@@ -73,6 +178,17 @@ function App() {
         }
         onNavigate={
           handleNavigate
+        }
+        onLogout={
+          handleLogout
+        }
+        employeeRole={
+          employee.role
+        }
+        onCreateUser={() =>
+          handleNavigate(
+            "create-user"
+          )
         }
       />
 

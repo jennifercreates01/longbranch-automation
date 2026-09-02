@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import type { Request, Response, NextFunction } from "express";
 import { prisma } from "./prisma.js";
 
 dotenv.config();
@@ -8,14 +12,340 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not configured");
+}
+
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+app.use(cookieParser());
+
+type AuthenticatedRequest = Request & {
+  employee?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+};
+
+const requireAuth = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.cookies.longbranch_session;
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Authentication required",
+      });
+    }
+
+    const payload = jwt.verify(token, JWT_SECRET) as {
+      employeeId: number;
+    };
+
+    const employee = await prisma.employee.findUnique({
+      where: {
+        id: payload.employeeId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!employee || !employee.isActive) {
+      return res.status(401).json({
+        message: "Authentication required",
+      });
+    }
+
+    req.employee = {
+      id: employee.id,
+      name: employee.name,
+      email: employee.email,
+      role: employee.role,
+    };
+
+    next();
+  } catch {
+    return res.status(401).json({
+      message: "Authentication required",
+    });
+  }
+};
 
 app.get("/", (_req, res) => {
   res.json({
     message: "Longbranch Automation Books API is running",
   });
 });
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email?.trim() || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: {
+        email: email.trim().toLowerCase(),
+      },
+    });
+
+    if (!employee || !employee.isActive) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      password,
+      employee.passwordHash
+    );
+
+    if (!passwordMatches) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        employeeId: employee.id,
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "8h",
+      }
+    );
+
+    res.cookie("longbranch_session", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? "none"
+          : "lax",
+      maxAge: 8 * 60 * 60 * 1000,
+    });
+
+    return res.json({
+      employee: {
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        role: employee.role,
+      },
+    });
+  } catch (error) {
+    console.error("Unable to log in:", error);
+
+    return res.status(500).json({
+      message: "Unable to log in",
+    });
+  }
+});
+
+app.post("/api/auth/logout", (_req, res) => {
+  res.clearCookie("longbranch_session", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite:
+      process.env.NODE_ENV === "production"
+        ? "none"
+        : "lax",
+  });
+
+  return res.json({
+    message: "Logged out successfully",
+  });
+});
+
+app.get(
+  "/api/auth/me",
+  requireAuth,
+  (req: AuthenticatedRequest, res) => {
+    return res.json({
+      employee: req.employee,
+    });
+  }
+);
+
+app.post("/api/auth/setup", async (req, res) => {
+  try {
+    const employeeCount = await prisma.employee.count();
+
+    if (employeeCount > 0) {
+      return res.status(403).json({
+        message: "Initial administrator has already been created",
+      });
+    }
+
+    const { name, email, password } = req.body;
+
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({
+        message: "Name, email, and password are required",
+      });
+    }
+
+    if (password.length < 12) {
+      return res.status(400).json({
+        message: "Password must be at least 12 characters",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const employee = await prisma.employee.create({
+      data: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        passwordHash,
+        role: "ADMIN",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    return res.status(201).json({
+      employee,
+    });
+  } catch (error) {
+    console.error("Unable to create administrator:", error);
+
+    return res.status(500).json({
+      message: "Unable to create administrator",
+    });
+  }
+});
+
+// Everything below this line requires an authenticated employee.
+app.use("/api", requireAuth);
+
+app.post(
+  "/api/employees",
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
+    try {
+      if (
+        req.employee?.role !==
+        "ADMIN"
+      ) {
+        return res.status(403).json({
+          message:
+            "Administrator access required",
+        });
+      }
+
+      const {
+        name,
+        email,
+        password,
+      } = req.body;
+
+      if (
+        !name?.trim() ||
+        !email?.trim() ||
+        !password
+      ) {
+        return res.status(400).json({
+          message:
+            "Name, email, and password are required",
+        });
+      }
+
+      if (password.length < 12) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 12 characters",
+        });
+      }
+
+      const normalizedEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+      const existingEmployee =
+        await prisma.employee.findUnique({
+          where: {
+            email: normalizedEmail,
+          },
+        });
+
+      if (existingEmployee) {
+        return res.status(409).json({
+          message:
+            "A user with this email already exists",
+        });
+      }
+
+      const passwordHash =
+        await bcrypt.hash(
+          password,
+          12
+        );
+
+      const employee =
+        await prisma.employee.create({
+          data: {
+            name: name.trim(),
+            email:
+              normalizedEmail,
+            passwordHash,
+            role: "EMPLOYEE",
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        });
+
+      return res.status(201).json({
+        employee,
+      });
+    } catch (error) {
+      console.error(
+        "Unable to create employee:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to create user",
+      });
+    }
+  }
+);
 
 app.get("/api/customers", async (_req, res) => {
   try {

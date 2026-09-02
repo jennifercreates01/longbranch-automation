@@ -28,17 +28,37 @@ Invoices can also be associated with jobs, keeping billing records connected to 
 
 ## Current Development Status
 
-The application has reached a functional full-stack MVP.
+The application has reached a functional, authenticated full-stack MVP and is entering its first client-accessible production deployment.
 
-Core customer, facility, job, and invoice workflows are implemented across the React frontend, Express API, Prisma data layer, and PostgreSQL database.
+Core customer, facility, job, invoice, authentication, and employee-access workflows are implemented across the React frontend, Express API, Prisma data layer, and PostgreSQL database.
 
-The current development milestone is focused on:
+Current production functionality includes:
 
-- Employee authentication
-- Backend route protection
-- Production configuration
+- Secure employee login
+- Password hashing with bcrypt
+- JWT-based authenticated sessions
+- HTTP-only authentication cookies
+- Protected backend API routes
+- Employee logout
+- Administrator-controlled employee account creation
+- Customer management
+- Facility management
+- Job management
+- Invoice management
+- PDF invoice generation
+- Responsive desktop, tablet, and mobile layouts
+- PostgreSQL production database
+- Railway backend infrastructure
+- Vercel frontend deployment configuration
+
+The current milestone is focused on:
+
+- Final production configuration
 - Production deployment
-- Client testing
+- Connecting the employee portal to the existing Longbranch website
+- End-to-end client testing
+
+Unauthenticated users cannot access Longbranch business records.
 
 ---
 
@@ -261,6 +281,7 @@ Current primary models include:
 - `Job`
 - `Invoice`
 - `InvoiceLineItem`
+- `Employee`
 
 The relational structure reflects Longbranch's real-world workflow, where work is performed for customers at specific facilities and billing can be associated directly with that work.
 
@@ -272,12 +293,15 @@ The frontend has been refactored into a modular page and component architecture 
 
 ```text
 client/src/
+├── assets/
 ├── components/
 ├── pages/
 │   ├── Dashboard.tsx
 │   ├── Customers.tsx
 │   ├── Jobs.tsx
-│   └── Invoices.tsx
+│   ├── Invoices.tsx
+│   ├── Login.tsx
+│   └── CreateUser.tsx
 ├── services/
 ├── types/
 ├── App.tsx
@@ -306,6 +330,9 @@ This structure allows individual business modules to be developed and maintained
 - TypeScript
 - Prisma ORM
 - PostgreSQL
+- bcryptjs
+- JSON Web Tokens
+- cookie-parser
 
 ### Infrastructure & Deployment
 
@@ -324,22 +351,23 @@ This structure allows individual business modules to be developed and maintained
 
 ---
 
-## Current Deployment Milestone
+## Production Deployment
 
-The next release milestone is the first authenticated client-accessible deployment.
+The application is being deployed as an authenticated employee portal for Longbranch Automation & Controls.
 
-Before production access is provided, development will add:
+Production architecture:
 
-- Employee login
-- Secure password storage
-- Authenticated sessions
-- Protected backend API routes
-- Logout functionality
-- Production CORS configuration
-- Production environment configuration
-- End-to-end production testing
-
-Unauthenticated users will not have access to Longbranch business records.
+```text
+Employee Device
+      │
+      ▼
+Vercel Frontend
+      │
+      ▼
+Railway API
+      │
+      ▼
+Neon PostgreSQL
 
 ---
 
@@ -347,8 +375,10 @@ Unauthenticated users will not have access to Longbranch business records.
 
 Following the initial authenticated production release, development is planned to continue with:
 
-- Employee account administration
-- Role-based authorization
+- Expanded employee account administration
+- Additional role-based permissions
+- Password reset workflow
+- Employee activation and deactivation
 - Estimates and quotes
 - Customer payment history
 - Expense tracking
@@ -377,3 +407,4 @@ The application combines customer management, facility management, job tracking,
 This project is designed and developed by **Jennifer** as a custom full-stack software engineering project for Longbranch Automation & Controls.
 
 The repository documents the application's development incrementally as database models, API functionality, business logic, frontend workflows, authentication, and production infrastructure are implemented.
+```

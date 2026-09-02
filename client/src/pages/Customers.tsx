@@ -77,10 +77,14 @@ function Customers({
           invoiceResponse,
         ] = await Promise.all([
           fetch(
-            `${API_URL}/api/customers`
+            `${API_URL}/api/customers`, {
+  credentials: "include",
+}
           ),
           fetch(
-            `${API_URL}/api/invoices`
+            `${API_URL}/api/invoices`, {
+  credentials: "include",
+}
           ),
         ]);
 
@@ -162,6 +166,7 @@ function Customers({
       `${API_URL}/api/customers/${selectedCustomer.id}`,
       {
         method: "DELETE",
+        credentials: "include",
       }
     );
 
@@ -208,7 +213,10 @@ function Customers({
       try {
         const response =
           await fetch(
-            `${API_URL}/api/customers/${selectedCustomer.id}`
+            `${API_URL}/api/customers/${selectedCustomer.id}`,
+            {
+              credentials: "include",
+            }
           );
 
         if (!response.ok) {
@@ -254,6 +262,7 @@ function Customers({
       `${API_URL}/api/facilities/${facilityId}`,
       {
         method: "DELETE",
+        credentials: "include",
       }
     );
 
@@ -279,7 +288,10 @@ function Customers({
     if (selectedCustomer) {
       const customerResponse =
         await fetch(
-          `${API_URL}/api/customers/${selectedCustomer.id}`
+          `${API_URL}/api/customers/${selectedCustomer.id}`,
+          {
+            credentials: "include",
+          }
         );
 
       if (customerResponse.ok) {

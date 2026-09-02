@@ -96,6 +96,7 @@ function CustomerForm({
         await fetch(
           url,
           {
+            credentials: "include",
             method:
               isEditing
                 ? "PUT"

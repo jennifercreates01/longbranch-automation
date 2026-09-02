@@ -149,7 +149,9 @@ const [endDate, setEndDate] =
 const response =
   await fetch(
     url,
+    
     {
+      credentials: "include",
       method:
         isEditing
           ? "PUT"

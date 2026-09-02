@@ -61,6 +61,7 @@ function FacilityForm({
         await fetch(
           `${API_URL}/api/facilities`,
           {
+             credentials: "include",
             method: "POST",
 
             headers: {
