@@ -166,15 +166,16 @@ function ChangePassword({
           </p>
 
           <h1>
-            Create your password
+            Welcome to Longbranch Automation & Controls
           </h1>
 
           <p className="login-description">
-            Welcome, {employeeName}.
-            Before continuing, replace
-            your temporary password
-            with a private password
-            only you know.
+            We’re glad you’re here,
+            {employeeName ? ` ${employeeName}` : ""}.
+            Before accessing the portal,
+            please replace your temporary
+            password with a new password
+            that only you know.
           </p>
         </div>
       </section>
@@ -188,14 +189,16 @@ function ChangePassword({
         >
           <div>
             <p className="eyebrow">
-              First Login
+              Account Setup
             </p>
 
             <h2>
-              Change Password
+              Please Change Your Password
             </h2>
 
             <p className="subtitle">
+              For security, create a new
+              password before continuing.
               Your new password must
               contain at least 12
               characters.

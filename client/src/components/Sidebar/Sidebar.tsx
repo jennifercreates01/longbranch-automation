@@ -123,48 +123,44 @@ function Sidebar({
             Estimates
           </button>
 
-          {employeeRole === "ADMIN" && (
-            <button
-              className={
-                activePage ===
-                "manage-users"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                navigate(
-                  "manage-users"
-                )
-              }
-            >
-              Manage Users
-            </button>
-          )}
+  
         </nav>
 
         <div className="sidebar-actions">
-          {employeeRole === "ADMIN" && (
-            <button
-              type="button"
-              className="create-user-button"
-              onClick={
-                handleCreateUser
-              }
-            >
-              Create User
-            </button>
-          )}
+  {employeeRole === "ADMIN" && (
+    <>
+      <button
+        type="button"
+        className={
+          activePage === "manage-users"
+            ? "create-user-button active"
+            : "create-user-button"
+        }
+        onClick={() =>
+          navigate("manage-users")
+        }
+      >
+        Manage Users
+      </button>
 
-          <button
-            type="button"
-            className="logout-button"
-            onClick={
-              handleLogout
-            }
-          >
-            Log Out
-          </button>
-        </div>
+      <button
+        type="button"
+        className="create-user-button"
+        onClick={handleCreateUser}
+      >
+        Create User
+      </button>
+    </>
+  )}
+
+  <button
+    type="button"
+    className="logout-button"
+    onClick={handleLogout}
+  >
+    Log Out
+  </button>
+</div>
       </div>
     </aside>
   );
