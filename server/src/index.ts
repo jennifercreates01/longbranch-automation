@@ -1403,6 +1403,229 @@ app.put("/api/invoices/:id", async (req, res) => {
   }
 });
 
+
+app.get(
+  "/api/employees",
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
+    try {
+      if (
+        req.employee?.role !==
+        "ADMIN"
+      ) {
+        return res.status(403).json({
+          message:
+            "Administrator access required",
+        });
+      }
+
+      const employees =
+        await prisma.employee.findMany({
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+            mustChangePassword:
+              true,
+            createdAt: true,
+          },
+
+          orderBy: {
+            name: "asc",
+          },
+        });
+
+      return res.json(employees);
+    } catch (error) {
+      console.error(
+        "Unable to retrieve users:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to retrieve users",
+      });
+    }
+  }
+);
+
+app.patch(
+  "/api/employees/:id/require-password-change",
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
+    try {
+      if (
+        req.employee?.role !==
+        "ADMIN"
+      ) {
+        return res.status(403).json({
+          message:
+            "Administrator access required",
+        });
+      }
+
+      const employeeId =
+        Number(req.params.id);
+
+      if (
+        !Number.isInteger(
+          employeeId
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid user ID",
+        });
+      }
+
+      if (
+        employeeId ===
+        req.employee.id
+      ) {
+        return res.status(400).json({
+          message:
+            "You cannot require a password change for your own administrator account from this screen",
+        });
+      }
+
+      const existingEmployee =
+        await prisma.employee.findUnique({
+          where: {
+            id: employeeId,
+          },
+        });
+
+      if (!existingEmployee) {
+        return res.status(404).json({
+          message:
+            "User not found",
+        });
+      }
+
+      const employee =
+        await prisma.employee.update({
+          where: {
+            id: employeeId,
+          },
+
+          data: {
+            mustChangePassword:
+              true,
+          },
+
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+            mustChangePassword:
+              true,
+            createdAt: true,
+          },
+        });
+
+      return res.json(employee);
+    } catch (error) {
+      console.error(
+        "Unable to require password change:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to require password change",
+      });
+    }
+  }
+);
+
+app.delete(
+  "/api/employees/:id",
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
+    try {
+      if (
+        req.employee?.role !==
+        "ADMIN"
+      ) {
+        return res.status(403).json({
+          message:
+            "Administrator access required",
+        });
+      }
+
+      const employeeId =
+        Number(req.params.id);
+
+      if (
+        !Number.isInteger(
+          employeeId
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid user ID",
+        });
+      }
+
+      if (
+        employeeId ===
+        req.employee.id
+      ) {
+        return res.status(400).json({
+          message:
+            "You cannot delete your own administrator account",
+        });
+      }
+
+      const existingEmployee =
+        await prisma.employee.findUnique({
+          where: {
+            id: employeeId,
+          },
+        });
+
+      if (!existingEmployee) {
+        return res.status(404).json({
+          message:
+            "User not found",
+        });
+      }
+
+      await prisma.employee.delete({
+        where: {
+          id: employeeId,
+        },
+      });
+
+      return res.json({
+        message:
+          "User deleted successfully",
+      });
+    } catch (error) {
+      console.error(
+        "Unable to delete user:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Unable to delete user",
+      });
+    }
+  }
+);
+
 // ESTIMATES
 
 const getNextEstimateNumber = async () => {

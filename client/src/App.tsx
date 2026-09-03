@@ -10,6 +10,7 @@ import Jobs from "./pages/Jobs";
 import Estimates from "./pages/Estimates";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
+import ManageUsers from "./pages/ManageUsers";
 import ChangePassword from "./pages/ChangePassword";
 
 import "./App.css";
@@ -147,11 +148,20 @@ function App() {
           <CreateUser
             onDone={() =>
               handleNavigate(
-                "dashboard"
+                "manage-users"
               )
             }
           />
         );
+
+      case "manage-users":
+        if (
+          employee?.role !== "ADMIN"
+        ) {
+          return <Dashboard />;
+        }
+
+        return <ManageUsers />;
 
       default:
         return <Dashboard />;

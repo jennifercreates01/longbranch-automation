@@ -122,6 +122,24 @@ function Sidebar({
           >
             Estimates
           </button>
+
+          {employeeRole === "ADMIN" && (
+            <button
+              className={
+                activePage ===
+                "manage-users"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                navigate(
+                  "manage-users"
+                )
+              }
+            >
+              Manage Users
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-actions">
