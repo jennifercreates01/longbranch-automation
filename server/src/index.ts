@@ -18,9 +18,61 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not configured");
 }
 
+const isAllowedOrigin = (
+  origin: string | undefined
+) => {
+  if (!origin) {
+    return true;
+  }
+
+  if (
+    origin ===
+    "http://localhost:5173"
+  ) {
+    return true;
+  }
+
+  if (
+    origin ===
+    "https://portal.longbranchcontrols.com"
+  ) {
+    return true;
+  }
+
+  if (
+    origin.startsWith(
+      "https://longbranch-automation-"
+    ) &&
+    origin.endsWith(
+      ".vercel.app"
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 app.use(
   cors({
-    origin: true,
+    origin(
+      origin,
+      callback
+    ) {
+      if (
+        isAllowedOrigin(origin)
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(
+        new Error(
+          "Not allowed by CORS"
+        )
+      );
+    },
+
     credentials: true,
   })
 );
